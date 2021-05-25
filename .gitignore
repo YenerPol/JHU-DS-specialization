@@ -41,5 +41,7 @@ vignettes/*.pdf
 # Data files
 *.csv
 *.txt
+
+# ignore all files in any directory named
 data/
 /data
