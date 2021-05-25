@@ -3,7 +3,7 @@
 ## Understand frequencies of words and word pairs
 
 # ---- Setup ----
-setwd("C:/Users/gomez/Documents/datasciencecoursera/DATA_SCIENCE_CAPSTONE")
+setwd("C:/Repositorios Github/JHU-specialization/JHU-DS-specialization/DATA_SCIENCE_CAPSTONE")
 library(tidyverse)
 library(tidytext)
 
@@ -12,7 +12,7 @@ library(tidytext)
 load("./data/output_task1.RData")
 
 # ---- my stop words ----
-my_stop_words <- token1_task_1 %>% count(word1, sort = T) %>% filter(n<=2) %>% select(word1)
+my_stop_words <- token1_task_1 %>% count(word1, sort = T) %>% filter(n<=3) %>% select(word1)
 my_stop_words <- rbind(my_stop_words, data.frame(
         "word1" = c("rt","lol","im","oh","ce","ðÿ","ya","wow","la","tv","re","yo",
                     "ah","ugh","tho","thx","yay","em","da","fb","î","wtf","xd","etc","mt",
@@ -20,7 +20,7 @@ my_stop_words <- rbind(my_stop_words, data.frame(
 stop <- stopwords::stopwords()
 
 # ---- plot 1 - top 20 frequent words mantaining stop_words ----
-gplot1 <- token1_task_1 %>% 
+gplot_1 <- token1_task_1 %>% 
                 count(word1, sort = T) %>% 
                 .[1:20,] %>% 
                 mutate(name = fct_reorder(word1, n)) %>%
@@ -31,7 +31,7 @@ gplot1 <- token1_task_1 %>%
                 theme_bw()
 
 # ---- plot 2 - top 20 frequent words removing stop_words ----
-gplot2 <- token1_task_1 %>% 
+gplot_2 <- token1_task_1 %>% 
                 count(word1, sort = T) %>% 
                 filter(!word1 %in% stop) %>%
                 filter(!word1 %in% my_stop_words$word1) %>%
@@ -43,7 +43,7 @@ gplot2 <- token1_task_1 %>%
                 xlab("") + ggtitle("Most Frequent words") +
                 theme_bw()
 
-gridExtra::grid.arrange(gplot1, gplot2, nrow = 1)
+gridExtra::grid.arrange(gplot_1, gplot_2, nrow = 1)
 
 # ---- new cleaning ----
 ## tal vez quiera filtrar algo mas, por eso en una funcion
@@ -60,10 +60,6 @@ clean_func <- function(data,bad1,bad2){
                 data %>% 
                         filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 | word3 %in% bad1$word1)) #%>% 
                         #filter(!(word1 %in% bad2 | word2 %in% bad2 | word3 %in% bad2))
-        }else if(ncol(data)==4){
-                data %>% 
-                        filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 | word3 %in% bad1$word1 | word4 %in% bad1$word1)) #%>% 
-                        #filter(!(word1 %in% bad2 | word2 %in% bad2 | word3 %in% bad2 | word4 %in% bad2))
         }
 }
 
@@ -76,6 +72,7 @@ head(tk3_noStop)
 
 num_rows <- nrow(tk1_noStop)
 
+rm(token1_task_1, token2_task_1, token3_task_1)
 # ---- tk1 stats -----
 tk1_noStop_stats <- tk1_noStop %>%
         count(word1, sort = T) %>%
@@ -86,14 +83,13 @@ head(tk1_noStop_stats)
 
 # ---- Zipf’s law. pag 44 tidytext ---- 
 tk1_noStop_stats %>%
-        ggplot(aes(rank, freq)) +
+        ggplot(aes(x = rank, y = freq)) +
         geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) +
-        geom_abline(intercept = -0.8, slope = -1, color = "gray50", linetype = 2) +
         scale_x_log10() +
         scale_y_log10() + 
-        labs(title = "Zipf’s law")
-
-# ---- plot 3 
+        geom_abline(intercept = -0.8, slope = -1, color = "gray50", linetype = 2) +
+        labs(title = "Zipf’s law", x = "log(Rank)", y = "log(Freq)")
+        
 # ---- plot 3 - top 20 frequent 2-grams mantaining stop_words ----
 gplot3 <- token2_task_1 %>% 
         unite(bigram, word1, word2, sep = " ") %>% 
@@ -103,8 +99,8 @@ gplot3 <- token2_task_1 %>%
         ggplot( aes(x=name, y=n)) +
         geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
         coord_flip() +
-        xlab("") + ggtitle("Most Frequent bigrams. stop words.") +
-        hrbrthemes::theme_ipsum()
+        xlab("") + ggtitle("Most Frequent bigrams. Keeping stop words.") +
+        theme_minimal()
 
 # ---- plot 4 - top 20 frequent 2-grams removing stop_words ----
 gplot4 <- tk2_noStop %>% 

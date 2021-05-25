@@ -5,7 +5,8 @@
 ## Profanity filtering - removing profanity and other words you do not want to predict.
 
 # ---- read files ---- ----
-setwd("C:/Users/gomez/Documents/datasciencecoursera/DATA_SCIENCE_CAPSTONE")
+
+setwd("C:/Repositorios Github/JHU-specialization/JHU-DS-specialization/DATA_SCIENCE_CAPSTONE")
 ## files path
 path <- list(blogs = "./data/sample.en_US.blogs.txt",
                 news = "./data/sample.en_US.news.txt",
