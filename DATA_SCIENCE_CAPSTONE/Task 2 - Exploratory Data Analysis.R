@@ -12,36 +12,50 @@ library(tidytext)
 load("./data/output_task1.RData")
 
 # ---- my stop words ----
-my_stop_words <- token1_task_1 %>% count(word1, sort = T) %>% filter(n<=3) %>% select(word1)
-my_stop_words <- rbind(my_stop_words, data.frame(
-        "word1" = c("rt","lol","im","oh","ce","ðÿ","ya","wow","la","tv","re","yo",
-                    "ah","ugh","tho","thx","yay","em","da","fb","î","wtf","xd","etc","mt",
-                    "aw","co","dr","de","nba","pp","php")))
+
+# --- stop words ---
+# (my_stop_words) El primer grupo de palabras a eliminar es el grupo de palabras 
+# que aparecen pocas veces en el data set. n <= 3. Ademas se agregan palabras 
+# manualmente que no significan nada. 
+
+my_stop_words <- token1_task_1 %>% 
+        count(word1, sort = T) %>% 
+        filter(n<=3) %>% 
+        select(word1)
+
+# tomadas de una inspeccion manual
+my_stop_words <- rbind(my_stop_words, 
+                       data.frame("word1" = c("rt","lol","im","oh","ce","ðÿ","ya",
+                                              "wow","la","tv","re","yo", "ah","ugh",
+                                              "tho","thx","yay","em","da","fb","î",
+                                              "wtf","xd","etc","mt","aw","co","dr",
+                                              "de","nba","pp","php","mc", "bc")))
+# esto por ahora se queda 
 stop <- stopwords::stopwords()
 
 # ---- plot 1 - top 20 frequent words mantaining stop_words ----
 gplot_1 <- token1_task_1 %>% 
-                count(word1, sort = T) %>% 
-                .[1:20,] %>% 
-                mutate(name = fct_reorder(word1, n)) %>%
-                ggplot( aes(x=name, y=n)) +
-                geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-                coord_flip() +
-                xlab("") + ggtitle("Most Frequent words") +
-                theme_bw()
+        count(word1, sort = T) %>% 
+        filter(!(word1 %in% my_stop_words$word1)) %>%
+        .[1:20,] %>% 
+        mutate(name = fct_reorder(word1, n)) %>%
+        ggplot( aes(x=name, y=n)) +
+        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+        coord_flip() +
+        xlab("") + ggtitle("Most Frequent words") +
+        theme_bw()
 
 # ---- plot 2 - top 20 frequent words removing stop_words ----
 gplot_2 <- token1_task_1 %>% 
-                count(word1, sort = T) %>% 
-                filter(!word1 %in% stop) %>%
-                filter(!word1 %in% my_stop_words$word1) %>%
-                .[1:20,] %>% 
-                mutate(name = fct_reorder(word1, n)) %>%
-                ggplot( aes(x=name, y=n)) +
-                geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-                coord_flip() +
-                xlab("") + ggtitle("Most Frequent words") +
-                theme_bw()
+        count(word1, sort = T) %>% 
+        filter(!(word1 %in% stop)) %>%
+        filter(!(word1 %in% my_stop_words$word1)) %>%
+        .[1:20,] %>% 
+        mutate(name = fct_reorder(word1, n)) %>%
+        ggplot( aes(x=name, y=n) ) +
+        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+        coord_flip() + xlab("") + 
+        ggtitle("Most Frequent words - No stop words") + theme_bw()
 
 gridExtra::grid.arrange(gplot_1, gplot_2, nrow = 1)
 
@@ -49,17 +63,14 @@ gridExtra::grid.arrange(gplot_1, gplot_2, nrow = 1)
 ## tal vez quiera filtrar algo mas, por eso en una funcion
 clean_func <- function(data,bad1,bad2){
         if(ncol(data)==1){
-                data %>% 
-                        filter(!(word1 %in% bad1$word1 )) #%>% 
-                        #filter(!(word1 %in% bad2 )) ##character vector
+                data %>% filter(!(word1 %in% bad1$word1))
+                #data %>% filter(!(word1 %in% bad1$word1 | word1 %in% bad2))
         }else if(ncol(data)==2){
-                data %>% 
-                        filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 )) #%>% 
-                        #filter(!(word1 %in% bad2 | word2 %in% bad2 ))
+                data %>% filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 )) 
+                #data %>% filter(!(word1 %in% bad1$word1 | word1 %in% bad2))
         }else if(ncol(data)==3){
-                data %>% 
-                        filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 | word3 %in% bad1$word1)) #%>% 
-                        #filter(!(word1 %in% bad2 | word2 %in% bad2 | word3 %in% bad2))
+                data %>% filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 | word3 %in% bad1$word1)) 
+                #data %>% filter(!(word1 %in% bad1$word1 | word1 %in% bad2))
         }
 }
 

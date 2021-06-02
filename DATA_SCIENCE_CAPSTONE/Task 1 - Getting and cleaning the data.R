@@ -38,7 +38,7 @@ token3 <- rbind(blogs_list[[3]], news_list[[3]], twitter_list[[3]])
 
 rm(blogs_list, news_list, twitter_list)
 
-# ---- Profanity filtering ---- ----
+# ---- Profanity filtering function ---- ----
 library(lexicon) # lexicon::profanity_alvarez list of profanity words
 profan_words <- tibble(profanity_alvarez) %>% rename("word"="profanity_alvarez")
 badwords <- read_csv("./data/BadWords.csv") %>% select(2) %>% rename("word" = "a55,")

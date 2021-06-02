@@ -36,26 +36,3 @@ df <- llenar()
 
 
 
-# ---- REVISAR ----
-tk3 <-  tk3_noStop %>% 
-        filter(word1 %in% words25000$word1) %>% 
-        filter(word2 %in% words25000$word1) %>% 
-        filter(word3 %in% words25000$word1)
-
-tk3_unite <- tk3 %>%
-        unite(bigram, word1, word2, sep = " ") %>% 
-        rename("outcome"="word3")
-
-stats_func <- function(df){
-        tk3_stats1 <- df %>% 
-                group_by(bigram, outcome) %>% 
-                summarize(n_word = n())
-        tk3_stats2 <- df %>% 
-                group_by(bigram) %>% 
-                summarize(n_bin = n())
-        merge(tk3_stats1, tk3_stats2, by = "bigram") %>% mutate(f = n_word/n_bin)
-}
-
-tk3_stats <- stats_func(tk3_unite)
-
-
