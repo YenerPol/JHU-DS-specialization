@@ -22,6 +22,11 @@ rm(path)
 library(tidytext)
 ## this function receive raw data
 token_func <- function(rawdata){
+        # Input : raw data. tibble n x 1. 1 sentence per row. 
+        # Output : tokenized Version of sentences. list of tibbles.
+        #           list[[1]] is a tibble m x 1 (1-gram)
+        #           list[[2]] is a tibble m x 2 (2-gram)
+        #           list[[3]] is a tibble m x 3 (3-gram)
         token_w4 <- rawdata %>% 
                 unnest_tokens(word, text, token = "ngrams", n=3, to_lower = T)
         token_w4 <- token_w4 %>% separate(word, c("word1", "word2", "word3", "word4"), sep = " ")
@@ -41,45 +46,38 @@ rm(blogs_list, news_list, twitter_list)
 # ---- Profanity filtering function ---- ----
 library(lexicon) # lexicon::profanity_alvarez list of profanity words
 profan_words <- tibble(profanity_alvarez) %>% rename("word"="profanity_alvarez")
-badwords <- read_csv("./data/BadWords.csv") %>% select(2) %>% rename("word" = "a55,")
-for(i in 1:nrow(badwords)){
-        badwords[i,] <- str_replace(badwords[i,], ",", "")
-}
-profan <- full_join(profan_words, badwords)
+#badwords <- read_csv("./data/BadWords.csv") %>% select(2) %>% rename("word" = "a55,")
+# for(i in 1:nrow(badwords)){
+#         badwords[i,] <- str_replace(badwords[i,], ",", "")
+# }
+#profan <- full_join(profan_words, badwords)
 
 # separate and filter function 
 
 separar_filtrar <- function(data, profan){
-        if(ncol(data) == 4){
-                ngrams_filtered <- data %>%
-                        filter(!(word1 %in% profan$word | word2 %in% profan$word | word3 %in% profan$word | word4 %in% profan$word)) %>% 
-                        filter(!((nchar(word1) == 1) | (nchar(word2) == 1) | (nchar(word3) == 1) | (nchar(word4) == 1)) ) %>% 
-                        filter(!(str_detect(word1, "[0-9]") | str_detect(word2, "[0-9]") | str_detect(word3, "[0-9]") | str_detect(word4, "[0-9]"))) %>% 
-                        filter(!(str_detect(word1, "â") | str_detect(word2, "â") | str_detect(word3, "â") | str_detect(word4, "â") )) %>% 
-                        filter(!( str_detect(word1, "hah") | str_detect(word2, "hah") | str_detect(word3, "hah") | str_detect(word4, "hah") ) )
-        }else if(ncol(data) == 3){
+        if(ncol(data) == 3){
                 ngrams_filtered <- data %>%
                         filter(!(is.na(word1) | is.na(word2) | is.na(word3) )) %>% 
-                        filter(!(word1 %in% profan$word | word2 %in% profan$word | word3 %in% profan$word)) %>% 
                         filter(!((nchar(word1) == 1) | (nchar(word2) == 1) | (nchar(word3) == 1) ) ) %>% 
                         filter(!(str_detect(word1, "[0-9]") | str_detect(word2, "[0-9]") | str_detect(word3, "[0-9]") ) ) %>% 
-                        filter(!(str_detect(word1, "â") | str_detect(word2, "â") | str_detect(word3, "â") ) ) %>% 
+                        filter(!(str_detect(word1, "â") | str_detect(word2, "â") | str_detect(word3, "â") ) ) %>%
+                        filter(!(word1 %in% profan$word | word2 %in% profan$word | word3 %in% profan$word)) %>% 
                         filter(!(str_detect(word1, "hah") | str_detect(word2, "hah") | str_detect(word3, "hah") ) )
         }else if(ncol(data) == 2){
                 ngrams_filtered <- data %>%
                         filter(!(is.na(word1) | is.na(word2) )) %>% 
-                        filter(!(word1 %in% profan$word | word2 %in% profan$word )) %>% 
                         filter(!((nchar(word1) == 1) | (nchar(word2) == 1) ) ) %>% 
                         filter(!(str_detect(word1, "[0-9]") | str_detect(word2, "[0-9]") ) ) %>% 
                         filter(!(str_detect(word1, "â") | str_detect(word2, "â") ) ) %>% 
-                        filter(!(str_detect(word1, "hah") | str_detect(word2, "hah") ) )
+                        filter(!(word1 %in% profan$word | word2 %in% profan$word )) %>%
+                        filter(!(str_detect(word1, "hah") | str_detect(word2, "hah") ) )            
         }else if(ncol(data) == 1){
                 ngrams_filtered <- data %>%
                         filter(!(is.na(word1))) %>% 
-                        filter(!(word1 %in% profan$word )) %>% 
                         filter(!((nchar(word1) == 1) ) ) %>% 
                         filter(!(str_detect(word1, "[0-9]") )) %>% 
                         filter(!(str_detect(word1, "â") ) ) %>% 
+                        filter(!(word1 %in% profan$word )) %>%
                         filter(!(str_detect(word1, "hah") ) )
         }
         ngrams_filtered
@@ -87,16 +85,16 @@ separar_filtrar <- function(data, profan){
 
 # ---- filtering data ---- ----
        
-token1_task_1 <- separar_filtrar(token1, profan)
-token2_task_1 <- separar_filtrar(token2, profan)
-token3_task_1 <- separar_filtrar(token3, profan)
+token1 <- separar_filtrar(token1, profan_words)
+token2 <- separar_filtrar(token2, profan_words)
+token3 <- separar_filtrar(token3, profan_words)
 
 rm(token1,token2,token3)
 
 # ---- save data ----
 
 #puede guardar multiples archivos OJO!
-save(token1_task_1, token2_task_1, token3_task_1, file="./data/output_task1.RData") 
+save(token1, token2, token3, file="./data/output_task1.RData") 
 
 
 
