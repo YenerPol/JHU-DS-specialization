@@ -2,15 +2,35 @@
 setwd("C:/Users/gomez/Documents/datasciencecoursera/DATA_SCIENCE_CAPSTONE")
 load("./data/output_task2.RData")
 library(tidyverse)
-library(tidytext)
-# --- cuting data ----
-words25000 <- tk1_noStop_stats[1:25000,]
-# filter 25000 words
-tk2 <-  tk2_noStop %>% 
-        filter(word1 %in% words25000$word1) %>% 
-        filter(word2 %in% words25000$word1)
 
-num_row_tk2 <- nrow(tk2)
+# --- cuting data ----
+
+cumsum95 <- sum(token1$cumsum <= 0.95)
+token1 <- token1[1:15000,]
+
+# filtering top 15000 words
+library(tidytext)
+
+bigram <- token2$bigram %>% as_tibble() %>% separate(value, c("word1", "word2"), sep = " ")
+trigram <- token3$trigram %>% as_tibble() %>% separate(value, c("word1", "word2", "word3"), sep = " ")
+
+token2$word1 <- bigram$word1
+token2$word2 <- bigram$word2
+
+token3$word1 <- trigram$word1
+token3$word2 <- trigram$word2
+token3$word3 <- trigram$word3
+
+token2 <- token2 %>% 
+        filter(word1 %in% token1$word1) %>% 
+        filter(word2 %in% token1$word1)
+
+token3 <- token3 %>% 
+        filter(word1 %in% token1$word1) %>% 
+        filter(word2 %in% token1$word1) %>% 
+        filter(word1 %in% token1$word1)  
+
+
 
 # counting bigrams
 tk2_count <- tk2 %>% 

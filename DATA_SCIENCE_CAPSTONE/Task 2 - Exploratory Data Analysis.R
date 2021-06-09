@@ -1,4 +1,5 @@
-# ---- Tasks to accomplish ----
+#  Tasks to accomplish 
+
 ## Exploratory analysis 
 ## Understand frequencies of words and word pairs
 
@@ -11,165 +12,117 @@ library(tidytext)
 # ---- reading the output from task 1 ----
 load("./data/output_task1.RData")
 
-# ---- my stop words ----
+token1 <- token1 %>% count(word1, sort = TRUE)
+occurrences <- sum(token1$n)
+token1 <- token1 %>% mutate(freq = n/occurrences)
 
-# --- stop words ---
-# (my_stop_words) El primer grupo de palabras a eliminar es el grupo de palabras 
-# que aparecen pocas veces en el data set. n <= 3. Ademas se agregan palabras 
-# manualmente que no significan nada. 
+token1 %>% summary()
 
-my_stop_words <- token1_task_1 %>% 
-        count(word1, sort = T) %>% 
-        filter(n<=3) %>% 
-        select(word1)
+# ---- plot 1 with the 20 most frequent words in vocabulary ----
 
-# tomadas de una inspeccion manual
-my_stop_words <- rbind(my_stop_words, 
-                       data.frame("word1" = c("rt","lol","im","oh","ce","ðÿ","ya",
-                                              "wow","la","tv","re","yo", "ah","ugh",
-                                              "tho","thx","yay","em","da","fb","î",
-                                              "wtf","xd","etc","mt","aw","co","dr",
-                                              "de","nba","pp","php","mc", "bc")))
-# esto por ahora se queda 
-stop <- stopwords::stopwords()
+# Here we can see that we have a really huge vocabulary, there are more than a 
+# hundred thousand words! But, in the other hand, the summary of this vocabulary 
+# shows that 75% of the words are repeated just 5 times or less. 
+# Cut the data by frecuency could help making our model faster and lighther. 
 
-# ---- plot 1 - top 20 frequent words mantaining stop_words ----
-gplot_1 <- token1_task_1 %>% 
-        count(word1, sort = T) %>% 
-        filter(!(word1 %in% my_stop_words$word1)) %>%
-        .[1:20,] %>% 
+# The most frequent words are:
+        
+token1 %>% .[1:20,] %>% 
         mutate(name = fct_reorder(word1, n)) %>%
         ggplot( aes(x=name, y=n)) +
-        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-        coord_flip() +
-        xlab("") + ggtitle("Most Frequent words") +
-        theme_bw()
+        geom_bar(stat="identity", fill="black", alpha=.6, width=.4) +
+        coord_flip() + ylab("Counts") +
+        xlab("") + ggtitle("20 Most Frequent Words") +
+        theme_gray()
 
-# ---- plot 2 - top 20 frequent words removing stop_words ----
-gplot_2 <- token1_task_1 %>% 
-        count(word1, sort = T) %>% 
-        filter(!(word1 %in% stop)) %>%
-        filter(!(word1 %in% my_stop_words$word1)) %>%
-        .[1:20,] %>% 
-        mutate(name = fct_reorder(word1, n)) %>%
-        ggplot( aes(x=name, y=n) ) +
-        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-        coord_flip() + xlab("") + 
-        ggtitle("Most Frequent words - No stop words") + theme_bw()
+# selecting words with count >3
+threshold <- 3
+token1 <- token1 %>% filter(n > threshold) 
+occurrences <- sum(token1$n)
+token1 <- token1 %>% mutate(freq = n/occurrences)
 
-gridExtra::grid.arrange(gplot_1, gplot_2, nrow = 1)
+token1 %>% summary()
 
-# ---- new cleaning ----
-## tal vez quiera filtrar algo mas, por eso en una funcion
-clean_func <- function(data,bad1,bad2){
-        if(ncol(data)==1){
-                data %>% filter(!(word1 %in% bad1$word1))
-                #data %>% filter(!(word1 %in% bad1$word1 | word1 %in% bad2))
-        }else if(ncol(data)==2){
-                data %>% filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 )) 
-                #data %>% filter(!(word1 %in% bad1$word1 | word1 %in% bad2))
-        }else if(ncol(data)==3){
-                data %>% filter(!(word1 %in% bad1$word1 | word2 %in% bad1$word1 | word3 %in% bad1$word1)) 
-                #data %>% filter(!(word1 %in% bad1$word1 | word1 %in% bad2))
+head(token1)
+
+# this function gets 2-gram and 3-gram data (1 word per column) and 
+# remove words that doesn't appear in the vocabulary 
+clean_func <- function(dat, vocabulary){
+        if(ncol(dat) == 2){
+                dat %>% filter((word1 %in% vocabulary$word1) | (word2 %in% vocabulary$word1))
+        }else if(ncol(dat) == 3){
+                dat %>% filter((word1 %in% vocabulary$word1) | (word2 %in% vocabulary$word1)  | (word3 %in% vocabulary$word1))
         }
 }
 
-tk1_noStop <- clean_func(token1_task_1, my_stop_words, stop)
-head(tk1_noStop)
-tk2_noStop <- clean_func(token2_task_1, my_stop_words, stop)
-head(tk2_noStop)
-tk3_noStop <- clean_func(token3_task_1, my_stop_words, stop)
-head(tk3_noStop)
+# Filtering token2 y token3
+token2 <- clean_func(token2, token1)
+token3 <- clean_func(token3, token1)
 
-num_rows <- nrow(tk1_noStop)
+head(token3)
 
-rm(token1_task_1, token2_task_1, token3_task_1)
-# ---- tk1 stats -----
-tk1_noStop_stats <- tk1_noStop %>%
-        count(word1, sort = T) %>%
-        rowid_to_column("rank") %>% 
-        mutate(freq = n/num_rows) 
+# ---- plot 2 with the 20 most frequent bigrams ----
 
-head(tk1_noStop_stats)
+# To count Bigrams and Trigrams, it's necesesary to combine each row 
+# in a single character column:  
+
+token2 <- token2 %>% 
+        unite(bigram, word1, word2, sep = " ") %>% 
+        count(bigram, sort = T)
+
+token2 %>% .[1:20,] %>% 
+        mutate(name = fct_reorder(bigram, n)) %>%
+        ggplot(aes(x=name, y=n)) +
+        geom_bar(stat="identity", fill="black", alpha=.6, width=.4) +
+        coord_flip() + 
+        xlab("") + ylab("Counts") + ggtitle("20 Most Frequent Bigrams") +
+        theme_gray()
+
+# ---- plot 3 with the 20 most frequent trigrams ----
+
+token3 <- token3 %>% 
+        unite(trigram, word1, word2, word3, sep = " ") %>% 
+        count(trigram, sort = T)
+
+token3 %>% .[1:20,] %>% 
+        mutate(name = fct_reorder(trigram, n)) %>%
+        ggplot(aes(x=name, y=n)) +
+        geom_bar(stat="identity", fill="black", alpha=.6, width=.4) +
+        coord_flip() + 
+        xlab("") + ylab("Counts") + ggtitle("20 Most Frequent Trigrams") +
+        theme_gray()
+
+# An interesting question is - How many unique words do we need in a frequency
+# sorted dictionary to cover 50% of all word instances in the language? 90%? Lets see:
+
+token1 %>% 
+        ggplot(aes(x=1:nrow(token1), y=cumsum(freq))) + 
+        geom_jitter() + xlab("Word rank") + 
+        ylab("Freq Cumulative sum") +
+        geom_hline(yintercept=0.95, color = "blue") +
+        geom_hline(yintercept=0.75, color = "pink") +
+        geom_hline(yintercept=0.50, color = "red") +
+        theme_gray()
+
+cum_sum <- cumsum(token1$freq) 
+token1$cumsum <- cum_sum
+
+cum_050 <- sum(cum_sum <= 0.50)
+cum_075 <- sum(cum_sum <= 0.75)
+cum_095 <- sum(cum_sum <= 0.95)
 
 # ---- Zipf’s law. pag 44 tidytext ---- 
-tk1_noStop_stats %>%
-        ggplot(aes(x = rank, y = freq)) +
+
+token1 %>%
+        mutate(Rank = row_number()) %>% 
+        ggplot(aes(x = Rank, y = freq)) +
         geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) +
         scale_x_log10() +
         scale_y_log10() + 
         geom_abline(intercept = -0.8, slope = -1, color = "gray50", linetype = 2) +
         labs(title = "Zipf’s law", x = "log(Rank)", y = "log(Freq)")
-        
-# ---- plot 3 - top 20 frequent 2-grams mantaining stop_words ----
-gplot3 <- token2_task_1 %>% 
-        unite(bigram, word1, word2, sep = " ") %>% 
-        count(bigram, sort = T) %>% 
-        .[1:20,] %>% 
-        mutate(name = fct_reorder(bigram, n)) %>%
-        ggplot( aes(x=name, y=n)) +
-        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-        coord_flip() +
-        xlab("") + ggtitle("Most Frequent bigrams. Keeping stop words.") +
-        theme_minimal()
-
-# ---- plot 4 - top 20 frequent 2-grams removing stop_words ----
-gplot4 <- tk2_noStop %>% 
-        unite(bigram, word1, word2, sep = " ") %>% 
-        count(bigram, sort = T) %>% 
-        .[1:20,] %>% 
-        mutate(name = fct_reorder(bigram, n)) %>%
-        ggplot( aes(x=name, y=n)) +
-        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-        coord_flip() +
-        xlab("") + ggtitle("Most Frequent bigrams. No stop words.") +
-        theme_minimal()
-
-# ---- plot 5 - top 20 frequent 3-grams mantaining stop_words ----
-gplot5 <- token3_task_1 %>% 
-        unite(trigram, word1, word2, word3, sep = " ") %>% 
-        count(trigram, sort = T) %>% 
-        .[1:20,] %>% 
-        mutate(name = fct_reorder(trigram, n)) %>%
-        ggplot( aes(x=name, y=n)) +
-        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-        coord_flip() +
-        xlab("") + ggtitle("Most Frequent trigrams. stop words.") +
-        theme_bw()
-
-# ---- plot 6 - top 20 frequent 2-grams removing stop_words ----
-gplot6 <- tk3_noStop %>% 
-        unite(trigram, word1, word2, word3, sep = " ") %>% 
-        count(trigram, sort = T) %>% 
-        .[1:20,] %>% 
-        mutate(name = fct_reorder(trigram, n)) %>%
-        ggplot(aes(x=name, y=n)) +
-        geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
-        coord_flip() +
-        xlab("") + ggtitle("Most Frequent trigrams. No stop words.") +
-        theme_bw()
-
-dev.new()
-gridExtra::grid.arrange(gplot1, gplot3, gplot5, gplot2, gplot4, gplot6,
-                        nrow =2)
-dev.off()
-
-# ---- plot density ----
-explain <- function(data, threshold){
-        x <- 0
-        cont <- 1
-        while (x < threshold) {
-              x <- x + data$freq[cont]
-              cont <- cont + 1
-        }
-        cont
-}
-explain(tk1_noStop_stats, 0.50) #897
-explain(tk1_noStop_stats, 0.75) #3707
-explain(tk1_noStop_stats, 0.90) #10952
-explain(tk1_noStop_stats, 0.95) #18694
-explain(tk1_noStop_stats, 0.975) #20232
 
 # ---- save final tables ----
-save(tk1_noStop_stats, tk2_noStop, tk3_noStop,  file="./data/output_task2.RData")
+token1 <-  token1 %>% mutate(Rank = row_number())
+save(token1, token2, token3,  file="./data/output_task2.RData")
 
